@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import * as store from '@/lib/store';
+import * as db from '@/lib/database';
 
 export async function PUT(request, { params }) {
     try {
         const { id } = await params;
         const data = await request.json();
-        const item = store.updateItem(id, data);
+        const item = await db.updateItem(id, data);
         if (!item) {
             return NextResponse.json({ error: 'Item not found' }, { status: 404 });
         }
@@ -18,7 +18,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
     try {
         const { id } = await params;
-        store.deleteItem(id);
+        await db.deleteItem(id);
         return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

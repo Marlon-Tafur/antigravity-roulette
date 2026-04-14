@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import * as store from '@/lib/store';
+import * as db from '@/lib/database';
 
 export async function GET(request) {
     try {
@@ -8,7 +8,7 @@ export async function GET(request) {
         if (!rouletteId) {
             return NextResponse.json({ error: 'roulette_id required' }, { status: 400 });
         }
-        const items = store.getItemsByRoulette(rouletteId);
+        const items = await db.getItemsByRoulette(rouletteId);
         return NextResponse.json(items);
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -18,7 +18,7 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const data = await request.json();
-        const item = store.createItem(data);
+        const item = await db.createItem(data);
         return NextResponse.json(item, { status: 201 });
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
