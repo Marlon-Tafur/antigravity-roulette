@@ -1,0 +1,120 @@
+# Antigravity Roulette Platform — Walkthrough
+
+## Overview
+
+Full-stack roulette platform for live events built with **Next.js 16**, vanilla CSS, and local storage (Supabase-ready). Features 3 views: admin panel, projected roulette display, and mobile registration form.
+
+**Dev server**: `npm run dev` → http://localhost:3000
+
+---
+
+## What Was Built
+
+### 🏗️ Project Structure
+
+```
+PanelRuleta/
+├── src/
+│   ├── app/
+│   │   ├── layout.js          # Root layout
+│   │   ├── page.js            # Landing (code input)
+│   │   ├── globals.css        # Design system
+│   │   ├── admin/page.jsx     # Admin panel (5 tabs)
+│   │   ├── roulette/[id]/page.jsx  # Projected view
+│   │   ├── register/[id]/page.jsx  # Mobile form
+│   │   └── api/               # 7 API routes
+│   ├── components/
+│   │   ├── RouletteWheel.jsx   # Canvas animated wheel
+│   │   ├── QRCode.jsx          # QR generator
+│   │   └── ParticipantForm.jsx # Dynamic form
+│   └── lib/
+│       ├── store.js           # LocalStorage data layer
+│       ├── realtime.js        # BroadcastChannel events
+│       └── supabase.js        # Supabase client
+├── supabase/migration.sql     # DB schema
+└── .env.local                 # Config
+```
+
+---
+
+### 📺 Views
+
+````carousel
+## 1. Admin Login
+Password-protected admin panel with glassmorphism login card.
+![Admin Login](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\admin_login_page_1776208097955.png)
+<!-- slide -->
+## 2. Admin Dashboard
+5-tab panel: Mis Ruletas, Ítems, Personalización, Formulario, Resultados.
+![Admin Dashboard](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\admin_dashboard_page_1776208146327.png)
+<!-- slide -->
+## 3. Roulette View
+Canvas-animated wheel with colored segments, QR code, and status indicator.
+![Roulette View](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\roulette_view_mnz8nvtih3we1jd9h_1776208670018.png)
+<!-- slide -->
+## 4. Registration Form
+Mobile-friendly form with gradient button and event branding.
+![Registration Form](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\registration_form_mnz8nvtih3we1jd9h_1776208725270.png)
+````
+
+---
+
+### ✅ Features Implemented
+
+| Feature | Status |
+|---|---|
+| Password-protected admin panel | ✅ |
+| Create/delete/toggle roulettes | ✅ |
+| 6-digit access codes | ✅ |
+| Add/remove/toggle prize items | ✅ |
+| Color customization (color pickers) | ✅ |
+| Logo URL config | ✅ |
+| Dynamic form field builder | ✅ |
+| Field reordering & required toggle | ✅ |
+| Results table with CSV export | ✅ |
+| Canvas-animated roulette wheel | ✅ |
+| QR code generation | ✅ |
+| Participant info display on screen | ✅ |
+| "Volver a jugar" / "Actualizar" buttons | ✅ |
+| State-aware registration (libre/ocupado/girando) | ✅ |
+| Cross-tab realtime sync (BroadcastChannel) | ✅ |
+| Spin result persistence | ✅ |
+| Supabase migration SQL (ready to use) | ✅ |
+
+---
+
+### 🔧 How to Use
+
+1. **Start**: `npm run dev` from the project root
+2. **Admin**: Go to `/admin`, password is `admin123`
+3. **Create roulette**: Click "+ Crear Ruleta", give it a name
+4. **Add prizes**: Go to "Ítems" tab, select roulette, add items
+5. **Customize**: Colors, logo, form fields via their respective tabs
+6. **Project**: Open `/roulette/{id}` on a TV/projector
+7. **Participate**: Scan QR or go to `/register/{id}` on phone
+8. **Play**: Submit form → data appears on screen → click wheel to spin
+
+### 🔌 Supabase (Optional)
+
+To connect Supabase for persistent multi-device storage:
+1. Run `supabase/migration.sql` in Supabase SQL Editor
+2. Add to `.env.local`:
+   - `NEXT_PUBLIC_SUPABASE_URL=your_url`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key`
+
+---
+
+## Verification
+
+- ✅ Admin login page renders with dark theme
+- ✅ Admin dashboard shows all 5 tabs
+- ✅ Roulette API creates roulettes with 6-digit codes
+- ✅ Items API adds prizes to roulettes
+- ✅ Roulette view renders animated wheel with 4 segments
+- ✅ QR code displays with correct code
+- ✅ Registration form renders dynamic fields
+- ✅ All API endpoints return correct responses
+
+![Admin Flow Recording](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\admin_test_1776208071958.webp)
+
+![Roulette & Registration Test](C:\Users\DELL\.gemini\antigravity\brain\a5c3d6c0-191a-4cc0-95de-5137306c8766\roulette_view_test_1776208599667.webp)
