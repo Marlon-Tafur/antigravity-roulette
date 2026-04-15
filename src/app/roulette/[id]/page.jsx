@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, use } from 'react';
 import RouletteWheel from '@/components/RouletteWheel';
 import QRCode from '@/components/QRCode';
-import { subscribeAll, emit, EVENTS, cleanup } from '@/lib/realtime';
 
 export default function RoulettePage({ params }) {
     const { id } = use(params);
@@ -51,35 +50,56 @@ export default function RoulettePage({ params }) {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // Realtime subscriptions
+    // Poll for session changes (works across devices)
     useEffect(() => {
-        if (!id) return;
+        if (!roulette) return;
+        const rouletteId = roulette.id;
 
-        const unsubscribe = subscribeAll(id, (eventType, payload) => {
-            switch (eventType) {
-                case EVENTS.NEW_PARTICIPANT:
-                    setParticipant(payload);
-                    setSession(prev => ({ ...prev, status: 'ocupado', current_participant_id: payload.id }));
-                    setWinner(null);
-                    break;
-                case EVENTS.ROULETTE_STATE:
-                    setSession(prev => ({ ...prev, ...payload }));
-                    if (payload.status === 'libre') {
+        const pollSession = async () => {
+            try {
+                const res = await fetch(`/api/sessions?roulette_id=${rouletteId}`);
+                const sessionData = await res.json();
+
+                setSession(prev => {
+                    const prevStatus = prev?.status;
+                    const newStatus = sessionData?.status;
+                    const prevParticipant = prev?.current_participant_id;
+                    const newParticipant = sessionData?.current_participant_id;
+
+                    // New participant arrived
+                    if (newStatus === 'ocupado' && newParticipant && newParticipant !== prevParticipant) {
+                        // Fetch participant data
+                        fetch(`/api/participants?roulette_id=${rouletteId}`)
+                            .then(r => r.json())
+                            .then(participants => {
+                                if (Array.isArray(participants)) {
+                                    const latest = participants.find(p => p.id === newParticipant) || participants[participants.length - 1];
+                                    if (latest) {
+                                        setParticipant(latest);
+                                        setWinner(null);
+                                    }
+                                }
+                            });
+                    }
+
+                    // Session reset to libre
+                    if (newStatus === 'libre' && prevStatus !== 'libre') {
                         setParticipant(null);
                         setWinner(null);
                     }
-                    break;
-                case EVENTS.SPIN_RESULT:
-                    setWinner(payload);
-                    break;
-            }
-        });
 
-        return () => {
-            unsubscribe();
-            cleanup(id);
+                    return sessionData;
+                });
+            } catch (e) { /* ignore */ }
         };
-    }, [id]);
+
+        // Initial poll
+        pollSession();
+        // Poll every 3 seconds
+        const interval = setInterval(pollSession, 3000);
+
+        return () => clearInterval(interval);
+    }, [roulette]);
 
     // Handle spin
     const handleSpin = useCallback(() => {
@@ -92,7 +112,6 @@ export default function RoulettePage({ params }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roulette_id: id, status: 'girando' }),
         });
-        emit(id, EVENTS.ROULETTE_STATE, { status: 'girando' });
     }, [id, spinning]);
 
     const handleSpinEnd = useCallback(async (wonItem) => {
@@ -110,7 +129,6 @@ export default function RoulettePage({ params }) {
                     item_won: wonItem.label,
                 }),
             });
-            emit(id, EVENTS.SPIN_RESULT, wonItem);
         }
 
         // Update session back to ocupado
@@ -132,7 +150,6 @@ export default function RoulettePage({ params }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roulette_id: id, status: 'libre', current_participant_id: null }),
         });
-        emit(id, EVENTS.ROULETTE_STATE, { status: 'libre' });
     }, [id]);
 
     // Play again with same participant
