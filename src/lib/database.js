@@ -44,6 +44,7 @@ export async function createRoulette(input) {
             colors: input.colors || ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'],
             logo_url: input.logo_url || '',
             is_active: true,
+            is_physical: input.is_physical || false,
             form_config: input.form_config || {
                 fields: [
                     { key: 'name', label: 'Nombre', type: 'text', required: true, order: 0 },

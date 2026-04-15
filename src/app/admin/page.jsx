@@ -131,6 +131,8 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
     const [showCreate, setShowCreate] = useState(false);
     const [newName, setNewName] = useState('');
     const [creating, setCreating] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [editName, setEditName] = useState('');
 
     const createRoulette = async (e) => {
         e.preventDefault();
@@ -162,6 +164,27 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_active: !roulette.is_active }),
         });
+        await onRefresh();
+    };
+
+    const togglePhysical = async (roulette) => {
+        await fetch(`/api/roulettes/${roulette.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_physical: !roulette.is_physical }),
+        });
+        await onRefresh();
+    };
+
+    const saveEditName = async (roulette) => {
+        if (!editName.trim()) return;
+        await fetch(`/api/roulettes/${roulette.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: editName.trim() }),
+        });
+        setEditingId(null);
+        setEditName('');
         await onRefresh();
     };
 
@@ -225,8 +248,20 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
                     {roulettes.map(r => (
                         <div key={r.id} className="card" style={{ cursor: 'pointer', borderColor: selectedRoulette?.id === r.id ? 'var(--accent-primary)' : undefined }} onClick={() => onSelect(r)}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-sm)' }}>
-                                <div>
-                                    <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>{r.name}</h3>
+                                <div style={{ flex: 1 }}>
+                                    {editingId === r.id ? (
+                                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                                            <input className="input" value={editName} onChange={e => setEditName(e.target.value)} autoFocus style={{ fontSize: '0.9rem', padding: '4px 8px', height: 'auto' }}
+                                                onKeyDown={e => { if (e.key === 'Enter') saveEditName(r); if (e.key === 'Escape') setEditingId(null); }} />
+                                            <button className="btn btn-sm btn-primary" onClick={() => saveEditName(r)} style={{ padding: '4px 8px' }}>✓</button>
+                                            <button className="btn btn-sm" onClick={() => setEditingId(null)} style={{ padding: '4px 8px' }}>✕</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>{r.name}</h3>
+                                            <button className="btn btn-icon" onClick={(e) => { e.stopPropagation(); setEditingId(r.id); setEditName(r.name); }} title="Editar nombre" style={{ width: 24, height: 24, fontSize: '0.75rem', opacity: 0.6 }}>✏️</button>
+                                        </div>
+                                    )}
                                     <div style={{ fontFamily: 'monospace', color: 'var(--text-accent)', fontSize: '0.9rem', marginTop: '2px' }}>
                                         Código: {r.code_6d}
                                     </div>
@@ -235,7 +270,24 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
                                     {r.is_active ? 'Activa' : 'Inactiva'}
                                 </span>
                             </div>
-                            <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-md)', flexWrap: 'wrap' }}>
+
+                            {/* Physical toggle */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 'var(--radius-md)', background: r.is_physical ? 'rgba(253, 203, 110, 0.1)' : 'rgba(108, 92, 231, 0.08)', border: '1px solid', borderColor: r.is_physical ? 'rgba(253, 203, 110, 0.3)' : 'rgba(108, 92, 231, 0.15)', marginBottom: 'var(--space-sm)' }} onClick={e => e.stopPropagation()}>
+                                <div>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: r.is_physical ? '#fdcb6e' : 'var(--text-secondary)' }}>
+                                        {r.is_physical ? '🎯 Ruleta Física' : '💻 Ruleta Virtual'}
+                                    </div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                        {r.is_physical ? 'Asignación manual de premios' : 'Giro automático en pantalla'}
+                                    </div>
+                                </div>
+                                <label className="toggle-switch" onClick={e => e.stopPropagation()}>
+                                    <input type="checkbox" checked={!!r.is_physical} onChange={() => togglePhysical(r)} />
+                                    <span className="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                                 <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); window.open(`${appUrl}/roulette/${r.id}`, '_blank'); }}>
                                     📺 Ver Ruleta
                                 </button>
@@ -669,26 +721,52 @@ function FormTab({ roulettes, selectedRoulette, onSelect, onRefresh }) {
 function ResultsTab({ roulettes, selectedRoulette, onSelect }) {
     const [results, setResults] = useState([]);
     const [participants, setParticipants] = useState([]);
+    const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [assigning, setAssigning] = useState({});
 
     const fetchResults = useCallback(async () => {
         if (!selectedRoulette) return;
         setLoading(true);
         try {
-            const [resResults, resParticipants] = await Promise.all([
+            const [resResults, resParticipants, resItems] = await Promise.all([
                 fetch(`/api/results?roulette_id=${selectedRoulette.id}`),
                 fetch(`/api/participants?roulette_id=${selectedRoulette.id}`),
+                fetch(`/api/items?roulette_id=${selectedRoulette.id}`),
             ]);
             const resultsData = await resResults.json();
             const participantsData = await resParticipants.json();
+            const itemsData = await resItems.json();
             setResults(Array.isArray(resultsData) ? resultsData : []);
             setParticipants(Array.isArray(participantsData) ? participantsData : []);
+            setItems(Array.isArray(itemsData) ? itemsData : []);
         } finally {
             setLoading(false);
         }
     }, [selectedRoulette]);
 
     useEffect(() => { fetchResults(); }, [fetchResults]);
+
+    const isPhysical = selectedRoulette?.is_physical;
+
+    // Participants without results (for physical roulettes)
+    const unassigned = participants.filter(p => !results.some(r => r.participant_id === p.id));
+
+    const assignPrize = async (participantId) => {
+        const prizeLabel = assigning[participantId];
+        if (!prizeLabel) { alert('Selecciona un premio'); return; }
+        await fetch('/api/results', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                roulette_id: selectedRoulette.id,
+                participant_id: participantId,
+                item_won: prizeLabel,
+            }),
+        });
+        setAssigning(prev => { const n = { ...prev }; delete n[participantId]; return n; });
+        await fetchResults();
+    };
 
     const exportCSV = () => {
         const rows = results.map(r => {
@@ -726,9 +804,49 @@ function ResultsTab({ roulettes, selectedRoulette, onSelect }) {
             {selectedRoulette && (
                 <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{results.length} jugadas registradas</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{results.length} jugadas registradas</span>
+                            {isPhysical && <span className="badge badge-warning" style={{ fontSize: '0.7rem' }}>🎯 Física</span>}
+                        </div>
                         <button className="btn btn-sm" onClick={exportCSV} disabled={results.length === 0}>📥 Exportar CSV</button>
                     </div>
+
+                    {/* Manual assignment for physical roulettes */}
+                    {isPhysical && unassigned.length > 0 && (
+                        <div className="card" style={{ marginBottom: 'var(--space-lg)', borderColor: 'rgba(253, 203, 110, 0.4)', background: 'rgba(253, 203, 110, 0.05)' }}>
+                            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fdcb6e', marginBottom: 'var(--space-md)' }}>
+                                🎯 Asignar premios ({unassigned.length} pendiente{unassigned.length > 1 ? 's' : ''})
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                                {unassigned.map(p => {
+                                    const pData = p.data || {};
+                                    return (
+                                        <div key={p.id} style={{
+                                            display: 'flex', alignItems: 'center', gap: 'var(--space-sm)',
+                                            padding: '8px 12px', borderRadius: 'var(--radius-md)',
+                                            background: 'var(--bg-card)', border: '1px solid var(--border-subtle)',
+                                            flexWrap: 'wrap',
+                                        }}>
+                                            <div style={{ flex: 1, minWidth: '120px' }}>
+                                                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{pData.name || pData.nombre || 'Anónimo'}</div>
+                                                {pData.email && <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{pData.email}</div>}
+                                            </div>
+                                            <select className="input" style={{ flex: 1, minWidth: '120px', padding: '6px 8px', fontSize: '0.85rem' }}
+                                                value={assigning[p.id] || ''} onChange={e => setAssigning(prev => ({ ...prev, [p.id]: e.target.value }))}>
+                                                <option value="">Seleccionar premio...</option>
+                                                {items.filter(i => i.is_active !== false).map(item => (
+                                                    <option key={item.id} value={item.label}>{item.emoji || '🎁'} {item.label}</option>
+                                                ))}
+                                            </select>
+                                            <button className="btn btn-sm btn-primary" onClick={() => assignPrize(p.id)} disabled={!assigning[p.id]} style={{ whiteSpace: 'nowrap' }}>
+                                                ✓ Asignar
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {loading ? (
                         <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-xl)' }}><div className="loading-spinner"></div></div>
@@ -736,7 +854,7 @@ function ResultsTab({ roulettes, selectedRoulette, onSelect }) {
                         <div className="empty-state">
                             <div className="icon">📊</div>
                             <h3>Sin resultados</h3>
-                            <p>Los resultados aparecerán aquí cuando se jueguen rondas</p>
+                            <p>{isPhysical ? 'Asigna premios a los participantes registrados arriba' : 'Los resultados aparecerán aquí cuando se jueguen rondas'}</p>
                         </div>
                     ) : (
                         <div className="table-container">

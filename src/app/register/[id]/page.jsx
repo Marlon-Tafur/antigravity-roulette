@@ -70,16 +70,18 @@ export default function RegisterPage({ params }) {
         const participant = await res.json();
         setParticipantId(participant.id);
 
-        // Update session to ocupado
-        await fetch('/api/sessions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                roulette_id: roulette.id,
-                status: 'ocupado',
-                current_participant_id: participant.id,
-            }),
-        });
+        // Only set session to ocupado for virtual roulettes
+        if (!roulette.is_physical) {
+            await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    roulette_id: roulette.id,
+                    status: 'ocupado',
+                    current_participant_id: participant.id,
+                }),
+            });
+        }
 
         // Show confirmation
         setParticipantName(formData.name || formData.nombre || '');
@@ -149,6 +151,8 @@ export default function RegisterPage({ params }) {
 
     // ✅ CONFIRMATION after form submission
     if (submitted) {
+        const isPhysical = roulette?.is_physical;
+
         return (
             <div style={{
                 minHeight: '100vh',
@@ -192,6 +196,48 @@ export default function RegisterPage({ params }) {
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                             Presenta esta pantalla para reclamar tu premio
                         </p>
+                    </>
+                ) : isPhysical ? (
+                    <>
+                        <div style={{ fontSize: '4rem', animation: 'pulse 2s ease-in-out infinite' }}>🎯</div>
+                        <h2 style={{
+                            fontSize: '1.6rem',
+                            fontWeight: 800,
+                            background: 'var(--accent-gradient-warm, var(--accent-gradient))',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                        }}>
+                            ¡Registro exitoso!
+                        </h2>
+                        {participantName && (
+                            <p style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                                Bienvenido/a, <strong>{participantName}</strong>
+                            </p>
+                        )}
+                        <div className="card" style={{
+                            padding: 'var(--space-lg)',
+                            maxWidth: '340px',
+                            textAlign: 'center',
+                            borderColor: 'rgba(253, 203, 110, 0.4)',
+                            boxShadow: '0 0 30px rgba(253, 203, 110, 0.1)',
+                        }}>
+                            <div style={{ fontSize: '2rem', marginBottom: 'var(--space-sm)' }}>🎰</div>
+                            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                                Tus datos fueron registrados.<br />
+                                <strong style={{ color: '#fdcb6e' }}>¡Gira la ruleta física!</strong><br />
+                                Tu premio se asignará en el momento.
+                            </p>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-sm)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.85rem',
+                        }}>
+                            <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2, borderTopColor: '#fdcb6e' }}></span>
+                            Esperando asignación de premio...
+                        </div>
                     </>
                 ) : (
                     <>
@@ -239,9 +285,9 @@ export default function RegisterPage({ params }) {
         );
     }
 
-    // Roulette is busy (someone else is playing)
+    // Roulette is busy (someone else is playing) - only for virtual roulettes
     const status = session?.status || 'libre';
-    if (status !== 'libre') {
+    if (status !== 'libre' && !roulette?.is_physical) {
         return (
             <div style={{
                 minHeight: '100vh',

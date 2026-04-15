@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Antigravity Roulette",
+  title: "AECODE Roulette",
   description: "Plataforma de ruletas interactivas para eventos en vivo",
 };
 

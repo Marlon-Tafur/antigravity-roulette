@@ -75,3 +75,18 @@ ALTER TABLE results DISABLE ROW LEVEL SECURITY;
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE participants;
 ALTER PUBLICATION supabase_realtime ADD TABLE results;
+
+-- =============================================
+-- ADD is_physical column (safe to re-run)
+-- This enables physical roulette mode where
+-- prizes are assigned manually from the admin panel
+-- =============================================
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'roulettes' AND column_name = 'is_physical'
+    ) THEN
+        ALTER TABLE roulettes ADD COLUMN is_physical BOOLEAN DEFAULT false;
+    END IF;
+END $$;
