@@ -52,6 +52,9 @@ export default function RegisterPage({ params }) {
         return () => clearInterval(interval);
     }, [roulette, session?.status, submitted]);
 
+    const [participantId, setParticipantId] = useState(null);
+    const [wonPrize, setWonPrize] = useState(null);
+
     const handleSubmit = async (formData) => {
         if (!roulette) return;
 
@@ -65,6 +68,7 @@ export default function RegisterPage({ params }) {
             }),
         });
         const participant = await res.json();
+        setParticipantId(participant.id);
 
         // Update session to ocupado
         await fetch('/api/sessions', {
@@ -81,6 +85,27 @@ export default function RegisterPage({ params }) {
         setParticipantName(formData.name || formData.nombre || '');
         setSubmitted(true);
     };
+
+    // Poll for results after submission
+    useEffect(() => {
+        if (!submitted || !roulette || !participantId || wonPrize) return;
+
+        const pollResults = async () => {
+            try {
+                const res = await fetch(`/api/results?roulette_id=${roulette.id}`);
+                const results = await res.json();
+                if (Array.isArray(results)) {
+                    const myResult = results.find(r => r.participant_id === participantId);
+                    if (myResult) {
+                        setWonPrize(myResult.item_won);
+                    }
+                }
+            } catch (e) { /* ignore */ }
+        };
+
+        const interval = setInterval(pollResults, 3000);
+        return () => clearInterval(interval);
+    }, [submitted, roulette, participantId, wonPrize]);
 
     if (loading) {
         return (
@@ -135,47 +160,81 @@ export default function RegisterPage({ params }) {
                 padding: 'var(--space-lg)',
                 textAlign: 'center',
             }}>
-                <div style={{
-                    fontSize: '4rem',
-                    animation: 'pulse 2s ease-in-out infinite',
-                }}>🎉</div>
-                <h2 style={{
-                    fontSize: '1.6rem',
-                    fontWeight: 800,
-                    background: 'var(--accent-gradient)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                }}>
-                    ¡Registro exitoso!
-                </h2>
-                {participantName && (
-                    <p style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>
-                        Bienvenido/a, <strong>{participantName}</strong>
-                    </p>
+                {wonPrize ? (
+                    <>
+                        <div style={{ fontSize: '4rem', animation: 'pulse 1.5s ease-in-out infinite' }}>🏆</div>
+                        <h2 style={{
+                            fontSize: '1.8rem',
+                            fontWeight: 800,
+                            background: 'var(--accent-gradient)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                        }}>
+                            ¡Ganaste!
+                        </h2>
+                        <div className="card" style={{
+                            padding: 'var(--space-xl)',
+                            maxWidth: '340px',
+                            textAlign: 'center',
+                            borderColor: 'var(--accent-primary)',
+                            boxShadow: '0 0 40px var(--accent-glow)',
+                            animation: 'slideUp 0.5s ease-out',
+                        }}>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                {wonPrize}
+                            </div>
+                        </div>
+                        {participantName && (
+                            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                                ¡Felicidades, <strong style={{ color: 'var(--text-primary)' }}>{participantName}</strong>!
+                            </p>
+                        )}
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                            Presenta esta pantalla para reclamar tu premio
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <div style={{ fontSize: '4rem', animation: 'pulse 2s ease-in-out infinite' }}>🎉</div>
+                        <h2 style={{
+                            fontSize: '1.6rem',
+                            fontWeight: 800,
+                            background: 'var(--accent-gradient)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                        }}>
+                            ¡Registro exitoso!
+                        </h2>
+                        {participantName && (
+                            <p style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                                Bienvenido/a, <strong>{participantName}</strong>
+                            </p>
+                        )}
+                        <div className="card" style={{
+                            padding: 'var(--space-lg)',
+                            maxWidth: '340px',
+                            textAlign: 'center',
+                            borderColor: 'var(--accent-primary)',
+                            boxShadow: 'var(--shadow-glow)',
+                        }}>
+                            <div style={{ fontSize: '2rem', marginBottom: 'var(--space-sm)' }}>📺</div>
+                            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                                Tus datos fueron enviados.<br />
+                                <strong style={{ color: 'var(--text-primary)' }}>Mira la pantalla principal</strong> para ver cuando giran la ruleta.
+                            </p>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-sm)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.85rem',
+                        }}>
+                            <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></span>
+                            Esperando resultado...
+                        </div>
+                    </>
                 )}
-                <div className="card" style={{
-                    padding: 'var(--space-lg)',
-                    maxWidth: '340px',
-                    textAlign: 'center',
-                    borderColor: 'var(--accent-primary)',
-                    boxShadow: 'var(--shadow-glow)',
-                }}>
-                    <div style={{ fontSize: '2rem', marginBottom: 'var(--space-sm)' }}>📺</div>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6, fontSize: '0.95rem' }}>
-                        Tus datos fueron enviados.<br />
-                        <strong style={{ color: 'var(--text-primary)' }}>Mira la pantalla principal</strong> para ver cuando giran la ruleta.
-                    </p>
-                </div>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-sm)',
-                    color: 'var(--text-muted)',
-                    fontSize: '0.85rem',
-                }}>
-                    <span className="loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }}></span>
-                    Esperando resultado...
-                </div>
             </div>
         );
     }

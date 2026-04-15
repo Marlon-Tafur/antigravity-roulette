@@ -234,6 +234,7 @@ export default function RoulettePage({ params }) {
                         onSpinEnd={handleSpinEnd}
                         spinning={spinning}
                         onSpinStart={() => setSpinning(true)}
+                        externalWinner={winner}
                     />
                 </div>
 

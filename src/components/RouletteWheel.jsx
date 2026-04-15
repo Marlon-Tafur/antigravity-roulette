@@ -1,13 +1,20 @@
 'use client';
 import { useRef, useEffect, useState, useCallback } from 'react';
 
-export default function RouletteWheel({ items = [], colors = [], logoUrl = '', onSpinEnd, spinning = false, onSpinStart }) {
+export default function RouletteWheel({ items = [], colors = [], logoUrl = '', onSpinEnd, spinning = false, onSpinStart, externalWinner }) {
     const canvasRef = useRef(null);
     const [rotation, setRotation] = useState(0);
     const [isSpinning, setIsSpinning] = useState(false);
     const [winner, setWinner] = useState(null);
     const animFrameRef = useRef(null);
     const startTimeRef = useRef(null);
+
+    // Sync winner with parent (clear overlay when parent resets)
+    useEffect(() => {
+        if (externalWinner === null || externalWinner === undefined) {
+            setWinner(null);
+        }
+    }, [externalWinner]);
 
     const activeItems = items.filter(i => i.is_active !== false);
     const segmentCount = activeItems.length || 1;
