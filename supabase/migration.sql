@@ -1,5 +1,5 @@
 -- Antigravity Roulette Platform - Database Migration
--- Run this in Supabase SQL Editor when ready to connect
+-- Run this in Supabase SQL Editor
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -59,6 +59,17 @@ CREATE INDEX IF NOT EXISTS idx_items_roulette ON items(roulette_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_roulette ON sessions(roulette_id);
 CREATE INDEX IF NOT EXISTS idx_participants_roulette ON participants(roulette_id);
 CREATE INDEX IF NOT EXISTS idx_results_roulette ON results(roulette_id);
+
+-- =============================================
+-- DISABLE RLS (Row Level Security)
+-- Since this app uses a simple password gate
+-- and the anon key, we disable RLS on all tables
+-- =============================================
+ALTER TABLE roulettes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE participants DISABLE ROW LEVEL SECURITY;
+ALTER TABLE results DISABLE ROW LEVEL SECURITY;
 
 -- Enable Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE sessions;

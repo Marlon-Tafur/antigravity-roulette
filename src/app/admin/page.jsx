@@ -141,11 +141,16 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newName || 'Nueva Ruleta' }),
             });
+            const data = await res.json();
             if (res.ok) {
                 setNewName('');
                 setShowCreate(false);
                 await onRefresh();
+            } else {
+                alert('Error al crear ruleta: ' + (data.error || 'Error desconocido'));
             }
+        } catch (err) {
+            alert('Error de conexión: ' + err.message);
         } finally {
             setCreating(false);
         }
