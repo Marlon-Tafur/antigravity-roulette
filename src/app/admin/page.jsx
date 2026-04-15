@@ -172,6 +172,15 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
         await onRefresh();
     };
 
+    const resetSession = async (roulette) => {
+        await fetch('/api/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roulette_id: roulette.id, status: 'libre', current_participant_id: null }),
+        });
+        alert('Sesión reseteada a "libre"');
+    };
+
     const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
     return (
@@ -232,6 +241,9 @@ function RoulettesTab({ roulettes, onRefresh, selectedRoulette, onSelect, loadin
                                 </button>
                                 <button className="btn btn-sm" onClick={(e) => { e.stopPropagation(); toggleActive(r); }}>
                                     {r.is_active ? '⏸ Desactivar' : '▶ Activar'}
+                                </button>
+                                <button className="btn btn-sm btn-success" onClick={(e) => { e.stopPropagation(); resetSession(r); }}>
+                                    🔄 Resetear
                                 </button>
                                 <button className="btn btn-sm btn-danger" onClick={(e) => { e.stopPropagation(); deleteRoulette(r.id); }}>
                                     🗑

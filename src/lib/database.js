@@ -17,13 +17,15 @@ export async function getAllRoulettes() {
 
 export async function getRoulette(id) {
     if (useSupabase) {
-        // Try by id first, then by code
-        let { data, error } = await supabase.from('roulettes').select('*').eq('id', id).single();
-        if (error || !data) {
-            const res = await supabase.from('roulettes').select('*').eq('code_6d', id).single();
-            data = res.data;
-            error = res.error;
+        // If it looks like a 6-digit code, search by code first
+        if (/^\d{6}$/.test(id)) {
+            const { data, error } = await supabase.from('roulettes').select('*').eq('code_6d', id).single();
+            if (data) return data;
+            if (error && error.code !== 'PGRST116') throw error;
         }
+        // Try by UUID id
+        const { data, error } = await supabase.from('roulettes').select('*').eq('id', id).single();
+        if (error && error.code === 'PGRST116') return null;
         if (error) throw error;
         return data;
     }
