@@ -122,7 +122,7 @@ export function createItem(data) {
         id: generateId(),
         roulette_id: data.roulette_id,
         label: data.label || 'Premio',
-        emoji: data.emoji || '🎁',
+        emoji: data.emoji ?? '',
         image_url: data.image_url || '',
         is_active: data.is_active !== undefined ? data.is_active : true,
         created_at: new Date().toISOString(),

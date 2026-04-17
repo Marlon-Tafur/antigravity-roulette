@@ -72,35 +72,60 @@ export default function RouletteWheel({ items = [], colors = [], logoUrl = '', o
             ctx.fillStyle = grad;
             ctx.fill();
 
-            // Text/emoji label
+            // Text/emoji label — radial direction (center → outer edge)
             if (activeItems[i]) {
                 ctx.save();
                 const textAngle = startAngle + segmentAngle / 2;
-                const textRadius = radius * 0.65;
-                const textX = centerX + Math.cos(textAngle) * textRadius;
-                const textY = centerY + Math.sin(textAngle) * textRadius;
 
-                ctx.translate(textX, textY);
-                ctx.rotate(textAngle + Math.PI / 2);
+                // Translate to center and rotate so x-axis points radially outward
+                ctx.translate(centerX, centerY);
+                ctx.rotate(textAngle);
 
-                // Emoji
-                if (activeItems[i].emoji) {
-                    ctx.font = `${Math.max(16, radius * 0.08)}px sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(activeItems[i].emoji, 0, -12);
+                // Radial boundaries
+                const innerR = radius * 0.23;   // just outside center circle
+                const outerR = radius * 0.90;   // near outer edge
+                const availRadial = outerR - innerR;
+
+                // Max font size: constrained by segment arc width at mid-radius
+                const maxFont = Math.min(segmentAngle * radius * 0.35, 18);
+
+                // Change 3: only render emoji when field has a real value
+                const hasEmoji = !!(activeItems[i].emoji && activeItems[i].emoji.trim() !== '');
+                const label = activeItems[i].label || '';
+
+                // Reserve space for emoji using a fixed heuristic (avoids measureText quirks with glyphs)
+                const emojiFontSize = Math.max(10, maxFont);
+                const emojiReserved = hasEmoji ? emojiFontSize * 1.4 : 0;
+
+                // Change 2: auto-shrink label font until it fits remaining radial space
+                const availForLabel = availRadial - emojiReserved;
+                let fontSize = maxFont;
+                const minFont = 7;
+                if (label) {
+                    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+                    while (fontSize > minFont && ctx.measureText(label).width > availForLabel) {
+                        fontSize -= 0.5;
+                        ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+                    }
                 }
 
-                // Label
-                ctx.font = `bold ${Math.max(10, radius * 0.055)}px Inter, sans-serif`;
-                ctx.fillStyle = '#fff';
-                ctx.textAlign = 'center';
+                ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.shadowBlur = 3;
-                const label = activeItems[i].label || '';
-                const maxChars = 14;
-                ctx.fillText(label.length > maxChars ? label.substring(0, maxChars) + '…' : label, 0, 8);
+                let xCursor = innerR;
+
+                if (hasEmoji) {
+                    ctx.font = `${emojiFontSize}px sans-serif`;
+                    ctx.fillText(activeItems[i].emoji, xCursor, 0);
+                    xCursor += emojiReserved;
+                }
+
+                if (label) {
+                    ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 3;
+                    ctx.fillText(label, xCursor, 0);
+                }
 
                 ctx.restore();
             }

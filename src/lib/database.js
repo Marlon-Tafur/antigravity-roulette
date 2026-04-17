@@ -94,7 +94,7 @@ export async function createItem(input) {
         const { data, error } = await supabase.from('items').insert({
             roulette_id: input.roulette_id,
             label: input.label || 'Premio',
-            emoji: input.emoji || '🎁',
+            emoji: input.emoji ?? '',
             image_url: input.image_url || '',
             is_active: input.is_active !== undefined ? input.is_active : true,
         }).select().single();
